@@ -1,29 +1,29 @@
 local BootstrapThing = {}
-
             
-function BootstrapThing:doThings(things)
+function BootstrapThing:doThings(tbt)
     package.loaded.BootstrapThing = nil
 
-    local indexMeta = function(t, key)
-            if filelist["meta_"..key..".lc"] ~= nil then
-                return loadfile("meta_"..key..".lc")
-            elseif filelist[t.thing.."_"..key..".lc"] ~= nil then
-                return loadfile(t.thing.."_"..key..".lc")
-            else
-                for i,v in ipairs(things) do    
-                    if v.thing == key then return v end
+    local function indexMeta(t, k)
+--                    print("[L] - Finding:"..t.thing..":"..k.." - "..node.heap())
+            local ext = loadfile("meta"..k..".lua")
+            if ext == nil then
+                ext = loadfile(t.thing..k..".lua")
+                if ext == nil then
+                    for i,v in ipairs(things) do    
+                        if v.thing == k then return v end
+                    end
                 end
             end
+            return ext
         end       
 
-    filelist = file.list()
-    for i, t in pairs(things) do
-        local name = string.gsub(string.lower(t.thing),"thing","")
+    for i, t in pairs(tbt) do
+        local sn = string.gsub(string.lower(t.thing),"thing","")
         local t = setmetatable(t,{ __index = indexMeta})
-        t.thing = name
+        t.thing = sn
         t[1] = i
     end
-    return things
+    return tbt
 end
 
 return BootstrapThing
