@@ -7,7 +7,8 @@ function PointThing:onAction(topic,msg)
             local ngpioid = tonumber(gpioid)
             value = (value == 2 and (gpio.read(ngpioid) == 1 and 0 or 1 )) or value
             gpio.write(ngpioid,value)
-        end
+   
+     end
     end
     return value
 end
@@ -15,11 +16,9 @@ end
 function PointThing:standUp() 
     for gpioids,name in pairs(self.gpio) do 
         local gpioid = tonumber(gpioids)
---        log("P","Configured ["..name.."]")
         gpio.mode(gpioid,gpio.OUTPUT,gpio.FLOAT)
         gpio.write(gpioid,gpio.LOW)
     end
-    
     return self.mqtt:setAction({[ptT]="onAction"},self,function(self) self:stoodUp() end)
 end
 

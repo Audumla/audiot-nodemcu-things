@@ -14,7 +14,6 @@ function Things:start()
                 end)
         else
             things = require("BootstrapThing"):doThings(config)
-            garbagecollect()
             things[1]:standUp()
         end        
     else

@@ -1,60 +1,60 @@
 local MQTTThing = {}
 
-function MQTTThing:onMessage(con,topic,data)
-    print("[Q] - Received:"..topic..":"..data)
-    for h,a in pairs(self.msgAction) do
-        for i,v in pairs(a) do
-            if string.match(topic,i) ~= nil then
-                local retv = nil
-                if type(v) == "function" then
-                    retv = v(h,topic,data)
+function MQTTThing:publish(topic,data)
+    if self.started == true then
+        table.insert(self.pq,topic)
+        table.insert(self.pq,data)
+        if self.posting ~= true or table.getn(self.pq) > 6 then
+            local function post()
+                if table.getn(self.pq) ~= 0 then
+                    local topic = table.remove(self.pq,1)
+                    local data = table.remove(self.pq,1)
+--                    print("[Q] - Publish:"..topic..":"..data) 
+                    self.posting = true
+                    return self.msgQueue:publish(topic,data,0,0,function() post() end)
                 else
-                    retv = h[v](h,topic,data)
+                    self.posting = false
                 end
-                if retv ~= nil then
-                    return self.msgQueue:publish("audiot/notify",retv,0,0)
-                    --ntT..string.sub(topic,string.len(evT)+1),retv,0,0)
-                end
-            end
+            end   
+            return post()
         end
     end
 end
 
 function MQTTThing:connected(msgq)
     self.msgQueue = msgq
-    self.msgQueue:on("offline", function() 
-            print("[Q] - Lost Connection") 
-            self:standDown(self.standUp) 
-        end)
-    self.msgQueue:on("message", 
-    function(con,topic,data)
---        print("[Q] - Received:"..topic..":"..data)
-        for h,a in pairs(self.msgAction) do
-            for i,v in pairs(a) do
-                if string.match(topic,i) ~= nil then
-                    local retv = nil
-                    if type(v) == "function" then
-                        retv = v(h,topic,data)
-                    else
-                        retv = h[v](h,topic,data)
-                    end
-                    if retv ~= nil then
-                        return self.msgQueue:publish(ntT..string.sub(topic,string.len(evT)+1),retv,0,0)
-                    end
-                end
-            end
-        end
-    end)    
---    function(con,topic,data) 
---            return self:onMessage(con,topic,data) 
---        end)
-    self.msgQueue:lwt("lwt", "offline" , 0, 0)
+    self.pq = {}
     self:stoodUp()
 end
 
 function MQTTThing:standUp()
     self.msgAction = {}
     local msgq = mqtt.Client(tmr.now(),120,"","")    
+    msgq:on("offline", function() 
+            print("[Q] - Lost Connection") 
+            self.msgQueue = nil
+            self:standDown(function() self:standUp() end) 
+        end)
+    msgq:on("message", function(con,topic,data)
+            self.hasMessage = true
+                    for h,a in pairs(self.msgAction) do
+                        for i,v in pairs(a) do
+                            if string.match(topic,i) ~= nil then
+                                local retv = nil
+                                if type(v) == "function" then
+                                    retv = v(h,topic,data)
+                                else
+                                    retv = h[v](h,topic,data)
+                                end
+                                if retv ~= nil then
+                                    self:publish(ntT..string.sub(topic,string.len(evT)+1),retv)
+                                end
+                            end
+                        end
+                    end
+                    self.hasMessage = false
+                end)
+    msgq:lwt("lwt", "offline" , 0, 0)
     msgq:connect(self.host, self.port, 0, function(msgq)
             tmr.alarm(timerQ,1,1,noop)
             self:connected(msgq)
@@ -89,15 +89,15 @@ function MQTTThing:setAction(ta,h,cb)
             end)] = a
     end
     local sf, t, a
-    sf = function()
+    sf = function(self)
             t, a = next(ta,t)
             if t ~= nil then
-               return self.msgQueue:subscribe(t,0, function() sf() end)
+               return self.msgQueue:subscribe(t,0, function() sf(self) end)
             else
                 return cb(h)
             end
         end
-    return sf()
+    return sf(self)
 end
 
 return MQTTThing

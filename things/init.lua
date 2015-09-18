@@ -1,5 +1,5 @@
 dofile("settings.lua")
---node.setcpufreq(node.CPU160MHZ)
+node.setcpufreq(node.CPU160MHZ)
 thingsStatus=0
 function noop(self) end
 

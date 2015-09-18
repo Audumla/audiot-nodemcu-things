@@ -9,7 +9,7 @@ function ManageThing:statusUpdate(wifiAPs)
             state.thing = dn
             state.memory = node.heap(0)
 --            state.wifi = wifiAPs
-            return self.mqtt.msgQueue:publish(stT,cjson.encode(state),0,0) 
+            return self.mqtt:publish(stT,cjson.encode(state)) 
 --        end)
 end
 
@@ -27,14 +27,17 @@ function ManageThing:saveFile(topic,data)
 end
 
 function ManageThing:standUp()    
-    tmr.alarm(timerM,intervalStatus, 1, 
-        function() 
-            self:statusUpdate()     
-        end)   
+       
     return self.mqtt:setAction(
         {[rsT]="restart",
          [svT]="saveFile"}
-        ,self,function(self) self:stoodUp() end)
+        ,self,function(self) 
+                 tmr.alarm(timerM,intervalStatus, 1, function() 
+                     self:statusUpdate()     
+ 
+                end)
+                 return self:stoodUp() 
+              end)
 end
 
 function ManageThing:standDown()
