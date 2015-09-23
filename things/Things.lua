@@ -8,13 +8,23 @@ function Things:start()
         if self.flash ~= false then
             local flasher = require "FlashThing"
             return flasher:flashAll(config,self.clean,self.debug, function()
-                    tmr.alarm( 0 , 10 , 0 , noop)
-                    things = require("BootstrapThing"):doThings(config)
-                    things[1]:standUp()
+                    tmr.alarm(0, 10 , 0 , noop)
+                    local status, err = pcall(function()
+                        things = require("BootstrapThing"):doThings(config)
+                        things[1]:standUp()
+                    end)
+                    if status ~= true then
+                        print("[L] - Error Starting ["..err.."]")
+                    end
                 end)
         else
-            things = require("BootstrapThing"):doThings(config)
-            things[1]:standUp()
+            local status, err = pcall(function()
+                things = require("BootstrapThing"):doThings(config)
+                things[1]:standUp()
+            end)
+            if status ~= true then
+                print("[L] - Error Starting ["..err.."]")
+            end
         end        
     else
         print("[L] - Cannont find 'things.config'")

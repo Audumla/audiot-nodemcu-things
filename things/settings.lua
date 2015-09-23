@@ -1,4 +1,4 @@
-dn = "AudumlaIOT-1";
+dn = "AudumlaIOT-4";
 evT = "audiot/event/"..dn.."/";
 ntT = "audiot/notify/"..dn.."/";
 mgT = "audiot/manage/"..dn.."/";

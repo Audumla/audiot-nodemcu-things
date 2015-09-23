@@ -29,7 +29,7 @@ end
 
 function MQTTThing:standUp()
     self.msgAction = {}
-    local msgq = mqtt.Client(tmr.now(),120,"","")    
+    local msgq = mqtt.Client(dn,120,"","")    
     msgq:on("offline", function() 
             print("[Q] - Lost Connection") 
             self.msgQueue = nil
@@ -56,13 +56,13 @@ function MQTTThing:standUp()
                 end)
     msgq:lwt("lwt", "offline" , 0, 0)
     msgq:connect(self.host, self.port, 0, function(msgq)
-            tmr.alarm(timerQ,1,1,noop)
+            tmr.alarm(timerQ,10,0,noop)
             self:connected(msgq)
         end)
 end
 
 function MQTTThing:standDown()
-    tmr.alarm(timerQ,1,1,noop)
+    tmr.alarm(timerQ,10,0,noop)
     if self.msgQueue ~= nil then
         self.msgQueue:on("offline", function() 
                 tmr.alarm(timerQ,10,0, function()
@@ -90,13 +90,17 @@ function MQTTThing:setAction(ta,h,cb)
     end
     local sf, t, a
     sf = function(self)
-            t, a = next(ta,t)
-            if t ~= nil then
-               return self.msgQueue:subscribe(t,0, function() sf(self) end)
-            else
-                return cb(h)
-            end
-        end
+            local status, err = pcall(function() 
+                    tmr.wdclr()
+                    t, a = next(ta,t)
+                    if t ~= nil then
+                        return self.msgQueue:subscribe(t, 0 , function() sf(self) end)
+                    else
+                        return cb(h)
+                    end
+                end)
+            if status ~= true then print("[Q] - Error Subscribing ["..t..":"..err.."]") end
+         end
     return sf(self)
 end
 

@@ -27,14 +27,12 @@ function ManageThing:saveFile(topic,data)
 end
 
 function ManageThing:standUp()    
-       
     return self.mqtt:setAction(
         {[rsT]="restart",
          [svT]="saveFile"}
         ,self,function(self) 
                  tmr.alarm(timerM,intervalStatus, 1, function() 
                      self:statusUpdate()     
- 
                 end)
                  return self:stoodUp() 
               end)
